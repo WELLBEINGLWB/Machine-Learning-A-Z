@@ -53,5 +53,7 @@ plt.xlabel('Position level')
 plt.ylabel('Salary')
 plt.show()
 
+print('test')
+
 """ Decision Tree Regression is good for more than one 
     indepent variable """
