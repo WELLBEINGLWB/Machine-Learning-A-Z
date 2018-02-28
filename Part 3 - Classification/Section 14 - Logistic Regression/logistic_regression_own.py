@@ -61,6 +61,7 @@ plt.show()
 
 # visualizing the test set results
 from matplotlib.colors import ListedColormap
+plt.figure(2)
 X_set, y_set = X_test, y_test
 X1, X2 = np.meshgrid(np.arange(start = X_set[:, 0].min() - 1, stop = X_set[:, 0].max() + 1, step = 0.01),
                      np.arange(start = X_set[:, 1].min() - 1, stop = X_set[:, 1].max() + 1, step = 0.01))
