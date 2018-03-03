@@ -1,0 +1,22 @@
+*** BRANCHING OUT ***
+git branch branch_name
+git checkout branch_name
+# change files
+git status
+git add -A
+git commit -m "commit message"
+git push -u origin branch_name # -u ascociates branch_name with orgin for future commits
+
+*** MERGE A BRANCH ***
+git checkout master
+git status
+git pull origin master # to get the latest updates
+git branch --merged # to see all merged branches of origin
+git merge branch_name
+git push origin master
+
+*** delete a local branch ***
+git branch -d branch_name
+
+*** delete remote branch ***
+git push origin --delete branch_name

@@ -8,7 +8,7 @@ class Agent:
       def __init__(self, eps=0.1, alpha=0.5):
             self.eps = eps
             self.alpha = alpha
-            self.verbdose = False
+            self.verbose = False
             self.state_history = []
 
       def setV(self, V):
@@ -22,42 +22,63 @@ class Agent:
             self.verbose = v
       
       def take_action(self, env):
-            # choose action based on epsilon-greedy strategty
-            r = np.random.rand()
-            best_state = None
-            if r < self.eps:
-                  # do random action
-                  if self.verbose:
-                        print('Taking random action')
-                  
-                  possible_moves = []
-                  for i in range(LENGTH):
-                        for j in range(LENGTH): 
-                              if env.is_empty(i, j):
-                                    possible_moves.append((i,j))
-                              idx = np.random.choice(len(possible_moves))
-                              next_move = possible_moves[idx]
-            else:
-                  pos2value = {} # for debugging
-                  next_move = None
-                  best_value = -1
-                  # possible moves was found alredy
-                  for i in range(LENGTH):
-                        for j in range(LENGTH):
-                              if env.is_empty(i,j):
-                                    # what is the state if we made this move
-                                    env.board[i,j] = self.sym
-                                    state = env.get_state()
-                                    env.board[i,j] = 0
-                                    pos2value[(i,j)] = self.V[state] # for debugging
-                                    if self.V[state] > best_value:
-                                          best_value = self.V[state]
-                                          best_state = state
-                                          next_move = (i, j)
-            
-            
-            
-            env.board[next_move] = self.sym
+          # choose an action based on epsilon-greedy strategy
+          r = np.random.rand()
+          best_state = None
+          if r < self.eps:
+            # take a random action
+            if self.verbose:
+              print("Taking a random action")
+      
+            possible_moves = []
+            for i in range(LENGTH):
+              for j in range(LENGTH):
+                if env.is_empty(i, j):
+                  possible_moves.append((i, j))
+            idx = np.random.choice(len(possible_moves))
+            next_move = possible_moves[idx]
+          else:
+            # choose the best action based on current values of states
+            # loop through all possible moves, get their values
+            # keep track of the best value
+            pos2value = {} # for debugging
+            next_move = None
+            best_value = -1
+            for i in range(LENGTH):
+              for j in range(LENGTH):
+                if env.is_empty(i, j):
+                  # what is the state if we made this move?
+                  env.board[i,j] = self.sym
+                  state = env.get_state()
+                  env.board[i,j] = 0 # don't forget to change it back!
+                  pos2value[(i,j)] = self.V[state]
+                  if self.V[state] > best_value:
+                    best_value = self.V[state]
+                    best_state = state
+                    next_move = (i, j)
+                    
+            # if verbose, draw the board w/ the values
+            if self.verbose:
+              print("Taking a greedy action")
+              for i in range(LENGTH):
+                print("------------------")
+                for j in range(LENGTH):
+                  if env.is_empty(i, j):
+                    # print the value
+                    print(" %.2f|" % pos2value[(i,j)], end="")
+                  else:
+                    print("  ", end="")
+                    if env.board[i,j] == env.x:
+                      print("x  |", end="")
+                    elif env.board[i,j] == env.o:
+                      print("o  |", end="")
+                    else:
+                      print("   |", end="")
+                print("")
+              print("------------------")
+      
+          # make the move
+          env.board[next_move[0], next_move[1]] = self.sym
             
 
       def reset_history(self):
@@ -140,22 +161,29 @@ class Environment:
             self.winner = None
             return False
       
+      # Example board
+     # -------------
+     # | x |   |   |
+     # -------------
+     # |   |   |   |
+     # -------------
+     # |   |   | o |
+     # -------------
       def draw_board(self):
-#            board_print = ""
-#            for i in range(LENGTH):
-#                  for j in range(LENGTH):
-#                        if self.board[i,j] == self.x:
-#                              board_print += "x"
-#                        elif self.board[i,j] == self.o:
-#                              board_print += "o"
-#                        else:
-#                              board_print += " "
-#                        if j < LENGTH-1:
-#                              board_print += "|"
-#                  if i < LENGTH-1:
-#                        board_print += "\n-----\n"
-#            print(board_print)
-      
+       for i in range(LENGTH):
+         print("-------------")
+         for j in range(LENGTH):
+           print("  ", end="")
+           if self.board[i,j] == self.x:
+             print("x ", end="")
+           elif self.board[i,j] == self.o:
+             print("o ", end="")
+           else:
+             print("  ", end="")
+         print("")
+       print("-------------")
+         
+         
       def get_state(self):
             h = 0
             k = 0 # keep track of fields placed?
@@ -179,6 +207,30 @@ class Environment:
             # if game is over
             # sym will be self.x or self.o
             return 1 if self.winner == sym else 0
+
+class Human:
+  def __init__(self):
+    pass
+
+  def set_symbol(self, sym):
+    self.sym = sym
+
+  def take_action(self, env):
+    while True:
+      # break if we make a legal move
+      move = input("Enter coordinates i,j for your next move (i,j=0..2): ")
+      i, j = move.split(',')
+      i = int(i)
+      j = int(j)
+      if env.is_empty(i, j):
+        env.board[i,j] = self.sym
+        break
+
+  def update(self, env):
+    pass
+
+  def update_state_history(self, s):
+    pass
 
 
 def play_game(p1, p2, env, display_board=False):
@@ -213,25 +265,111 @@ def play_game(p1, p2, env, display_board=False):
       p1.update(env)
       p2.update(env)
       
-def get_winner_state(env):
+def get_state_winner_ended_list(env):
       results = []
-      for i in range(LENGTH):
-            for j in range(LENGTH):
-                  for k in range(-1, 2):
-                        env.board[i,j] = k
-                        state = env.get_state()
-                        winner = env.winner
-                        ended = env.ended
-                        results.append((state, winner, ended))
-                        
+      
+      for n in range(env.num_states):
+          board_digits = np.array(toDigits(n, 3)) - 1
+          for k in range(len(board_digits)):
+              i = int(np.floor(k/3))
+              j = k % 3
+              env.board[i,j] = board_digits[k]
+              
+          state = env.get_state()
+          ended = env.game_over(force_recalculate = True)
+          winner = env.winner
+          
+          results.append((state, winner, ended))
+      
       return results
-                        
-      
 
+def initialV_x(env, state_winner_triples):
+  # initialize state values as follows
+  # if x wins, V(s) = 1
+  # if x loses or draw, V(s) = 0
+  # otherwise, V(s) = 0.5
+  V = np.zeros(env.num_states)
+  for state, winner, ended in state_winner_triples:
+    if ended:
+      if winner == env.x:
+        v = 1
+      else:
+        v = 0
+    else:
+      v = 0.5
+    V[state] = v
+  return V
+
+def initialV_o(env, state_winner_triples):
+  # this is (almost) the opposite of initial V for player x
+  # since everywhere where x wins (1), o loses (0)
+  # but a draw is still 0 for o
+  V = np.zeros(env.num_states)
+  for state, winner, ended in state_winner_triples:
+    if ended:
+      if winner == env.o:
+        v = 1
+      else:
+        v = 0
+    else:
+      v = 0.5
+    V[state] = v
+  return V
+
+""" original toDegits
+def toDigits(n, b):
+    # Convert a positive number n to its digit representation in base b.
+    digits = []
+    while n > 0:
+        digits.insert(0, n % b)
+        n  = n // b
+    return digits """
+
+def toDigits(n, b):
+    """Convert a positive number n to its digit representation in base b."""
+    digits = np.zeros(9)
+    k = 0
+    while n > 0:
+        digits[k] = n % b
+        n  = n // b
+        k += 1
+    return digits
+ 
 if __name__ == "__main__":
-      # set variables and play the game
-      
-      p1 = Agent()
-      p2 = Agent()
-      
-      env = Environment()
+  # train the agent
+  p1 = Agent()
+  p2 = Agent()
+
+  # set initial V for p1 and p2
+  env = Environment()
+  state_winner_triples = get_state_winner_ended_list(env)
+
+
+  Vx = initialV_x(env, state_winner_triples)
+  p1.setV(Vx)
+  Vo = initialV_o(env, state_winner_triples)
+  p2.setV(Vo)
+
+  # give each player their symbol
+  p1.set_symbol(env.x)
+  p2.set_symbol(env.o)
+
+  T = 10000
+  for t in range(T):
+    if t % 200 == 0:
+      print(t)
+    play_game(p1, p2, Environment())
+
+  # play human vs. agent
+  # do you think the agent learned to play the game well?
+  human = Human()
+  human.set_symbol(env.o)
+  while True:
+    p1.set_verbose(True)
+    play_game(p1, human, Environment(), display_board=2)
+    # I made the agent player 1 because I wanted to see if it would
+    # select the center as its starting move. If you want the agent
+    # to go second you can switch the human and AI.
+    answer = input("Play again? [Y/n]: ")
+    if answer and answer.lower()[0] == 'n':
+      break
