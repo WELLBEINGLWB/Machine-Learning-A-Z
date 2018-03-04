@@ -1,3 +1,6 @@
+from __future__ import print_function, division
+from builtins import range, input
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -17,10 +20,12 @@ class Agent:
    def set_verbose(self, v):
       self.verbose = v
    
+   def set_V(self, V):
+      self.V = V
+   
    def take_action(self, env):
       r = np.random.rand()
       next_move = None
-      
       if r < self.eps:
          if self.verbose:
             print("Taking random action")
@@ -38,10 +43,13 @@ class Agent:
          
          for i in range(LENGTH):
             for j in range(LENGTH):
-               if env.is_empty[i,j]:
+               if env.is_empty(i,j):
+                  env.board[i,j] = self.sym
                   state = env.get_state()
-                  if self.V(state) > best_value:
-                     best_value = self.V(state)
+                  env.board[i,j] = 0
+                  pos2value[(i,j)] = self.V[state]
+                  if self.V[state] > best_value:
+                     best_value = self.V[state]
                      next_move = (i,j)
       
          # if verbose, draw the board with the values
@@ -81,26 +89,25 @@ class Agent:
          value = self.V[prev] + self.alpha * (target - self.V[prev])
          self.V[prev] = value
          target = value
-      self.clear_state_history()
          
+      self.clear_state_history()
          
                   
 class Environment:
    def __init__(self):
-      self.board = np.array((3,3))
+      self.board = np.zeros((LENGTH,LENGTH))
       self.x = -1
       self.o = 1
       self.ended = False
       self.winner = None
-
+      self.num_states = 3**(LENGTH*LENGTH)
    
    def is_empty(self, i, j):
       return self.board[i, j] == 0
    
-   def game_over(self, force_recalculate):
+   def game_over(self, force_recalculate=False):
       if not force_recalculate and self.ended:
          return self.ended
-   
       """ checking all rows for winner """
       for i in range(LENGTH):
          for player in (self.x, self.o):
@@ -148,8 +155,8 @@ class Environment:
                t = 1
             elif self.board[i,j] == self.o:
                t = 2
-         s = (3**n) * t
-         n += 1
+            s += (3**n) * t
+            n += 1
       return s
       
    def draw_board(self):
@@ -167,10 +174,31 @@ class Environment:
       print("-------------")
    
    def reward(self, sym):
+      if not self.game_over():
+         return 0
+      # return 1 if the winner is sym
       return 1 if self.winner == sym else 0
+
+class Human:
+   def __init__(self):
+      pass
+   
+   def set_symbol(self, sym):
+      self.sym = sym
+      
+   def take_action(self, env):
+      while True:
+         # break if we make a leagal ve
+         move = input("Enter the coordinates i,j for your next move(i,j=0..2): ")
+         i,j = move.split(',')
+         i = int(i)
+         j = int(j)
+         if env.is_empty(i,j):
+            env.board[i,j] = self.sym
+            break
    
 # draw = playernumber, if draw = 0 board is not drawn
-def play_game(self, p1, p2, env, draw=False):
+def play_game(p1, p2, env, draw=False):
    current_player = None
    
    while not env.game_over():
@@ -179,24 +207,111 @@ def play_game(self, p1, p2, env, draw=False):
       else:
          current_player = p1
       
-      if draw == 1 and current_player == p1:
-         env.draw_board()
-      elif draw == 2 and current_player == p2:
-         env.draw_board()
+      if draw:
+         if draw == 1 and current_player == p1:
+            env.draw_board()
+         elif draw == 2 and current_player == p2:
+            env.draw_board()
       
       current_player.take_action(env)
-      state = env.get_state()
       
-      p1.update_state_history()
-      p2.update_state_history()
+      state = env.get_state()
+      p1.update_state_history(state)
+      p2.update_state_history(state)
    
    if draw :
       env.draw_board()
 
-   p1.update()
-   p2.update()
+   p1.update(env)
+   p2.update(env)
 
+
+def get_state_winner_ended_list(env):
+   results = []
+   for n in range(env.num_states):
+      board_digits =  np.array(permutation_digits(n, 3), int) - 1
       
+      for k in range(len(board_digits)):
+         i = int(np.floor(k/3))
+         j = k % 3
+         env.board[i,j] = board_digits[k]
+         
+      state = env.get_state()
+      ended = env.game_over(force_recalculate = True)
+      winner = env.winner
+      results.append((state, winner, ended))
+      
+   return results
+
+def permutation_digits(n, b):
+   # converts a positive number n to a ternary number with 9 positions
+   digits = np.zeros(9, int)
+   k = 0
+   while n > 0:
+      digits[k] = n % b
+      n = n // b
+      k += 1
+   return digits
+
+def initializeVx(env, state_winner_ended_triples):
+   V = np.zeros(env.num_states)
+   for state, winner, ended in state_winner_ended_triples:
+      if ended:
+         if winner == env.x:
+            V[state] = 1
+         else:
+            V[state] = 0
+      else:
+         V[state] = 0.5
+   return V
+   
+   
+def initializeVo(env, state_winner_ended_triples):
+   V = np.zeros(env.num_states)
+   for state, winner, ended in state_winner_ended_triples:
+      if ended:
+         if winner == env.o:
+            V[state] = 1
+         else:
+            V[state] = 0
+      else:
+         V[state] = 0.5
+   return V
+
+# %%
+
+if __name__ == '__main__':
+   p1 = Agent()
+   p2 = Agent()
+   
+   env = Environment()
+    
+   state_winner_ended_triples = get_state_winner_ended_list(env)
+
+   Vx = initializeVx(env, state_winner_ended_triples)
+   p1.set_V(Vx)
+   Vo = initializeVo(env, state_winner_ended_triples)
+   p2.set_V(Vo)
+   
+   # give symbols
+   p1.set_symbol(env.x)
+   p2.set_symbol(env.o)
+   
+   T = 10000
+   for t in range(T):
+      if t % 200 == 0:
+         print(t)
+      play_game(p1, p2, Environment())
+     
+   human = Human()
+   human.set_symbol(env.o)
+   while True:
+      p1.set_verbose(True)
+      play_game(p1, human, Environment(), draw = 2)
+      
+      answer = input("Play again? [y/n]: ")
+      if answer and answer.lower()[0] == 'n':
+         break
    
       
    
