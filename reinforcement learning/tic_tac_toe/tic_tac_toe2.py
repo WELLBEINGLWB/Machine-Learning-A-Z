@@ -196,6 +196,12 @@ class Human:
          if env.is_empty(i,j):
             env.board[i,j] = self.sym
             break
+        
+   def update_state_history(self, state):
+      pass
+   
+   def update(self, env):
+      pass
    
 # draw = playernumber, if draw = 0 board is not drawn
 def play_game(p1, p2, env, draw=False):
