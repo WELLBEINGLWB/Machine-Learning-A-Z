@@ -174,4 +174,5 @@ try:
     while True:
         env.run(agent)
 finally:
+    env.env.close() # close render window
     agent.brain.model.save("cartpole-basic.h5")

@@ -19,7 +19,7 @@ class Environment:
         s = self.env.reset()
         R = 0
         while True:
-#            self.env.render()
+            self.env.render()
             
             a = agent.act(s)
             
@@ -63,7 +63,7 @@ class Agent:
         if random.random() < self.epsilon:
             return random.randint(0, self.actionCnt - 1)
         else:
-            # returns 0 or 1 (action)
+            # 0 or 1 depending on Q fn value
             return np.argmax(self.brain.predictOne(s))
     
     # adds sample (s, a, r, s_) to memory
@@ -189,3 +189,13 @@ try:
 finally:
     file_save_name = "cartpole-basic-" + datetime.now().strftime('%Y-%m-%d-%H-%M') + ".h5"
     agent.brain.model.save(file_save_name)
+
+
+env2 = Environment(PROBLEM)
+episode_count = 2
+done = False
+for i in range(episode_count):
+    env2.run(agent)
+env2.env.close()
+        
+    
