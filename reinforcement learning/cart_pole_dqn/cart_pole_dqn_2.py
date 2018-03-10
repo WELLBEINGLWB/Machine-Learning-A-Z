@@ -5,6 +5,7 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import RMSprop
 from keras.optimizers import Adam
+from keras.models import load_model
 
 from datetime import datetime
 
@@ -49,16 +50,22 @@ MIN_EPSILON = 0.01
 LAMBDA = 0.001 # speed of epsilon decay
 
 class Agent:
-    steps = 0
-    epsilon = MAX_EPSILON
     
-    def __init__(self, stateCnt, actionCnt):
+    def __init__(self, stateCnt, actionCnt, training):
         self.stateCnt = stateCnt
         self.actionCnt = actionCnt
-
-        self.brain = Brain(stateCnt, actionCnt)
+        self.training = training
+        
+        if training:
+            self.epsilon = MAX_EPSILON
+            self.steps = 0
+        else:
+            self.epsilon = MIN_EPSILON
+        
+        self.brain = Brain(stateCnt, actionCnt, training)
         self.memory = Memory(MEMORY_CAPACITY)
-            
+    
+    # when loading weights this has to be changed
     def act(self, s):
         if random.random() < self.epsilon:
             return random.randint(0, self.actionCnt - 1)
@@ -70,8 +77,9 @@ class Agent:
     def observe(self, sample):
         self.memory.add(sample)
         
-        self.steps += 1
-        self.epsilon = MIN_EPSILON + (MAX_EPSILON - MIN_EPSILON) * math.exp(-LAMBDA * self.steps)
+        if self.training:
+            self.steps += 1
+            self.epsilon = MIN_EPSILON + (MAX_EPSILON - MIN_EPSILON) * math.exp(-LAMBDA * self.steps)
         
     # replays memories and improves
     def replay(self):
@@ -116,13 +124,16 @@ class Agent:
 """ BRAIN """    
 class Brain:
     
-    def __init__(self, stateCnt, actionCnt):
+    def __init__(self, stateCnt, actionCnt, training):
+        self.training = training
         self.stateCnt = stateCnt
         self.actionCnt = actionCnt
         
-        self.model = self._createModel()
-        # self.model.load_weights("cartpole-basic.h5")        
-
+        if training :
+            self.model = self._createModel()
+        else:
+            self.model = load_model('cartpole-basic-2018-03-09-18-44.h5')
+    
     def _createModel(self):
         model = Sequential()
 
@@ -173,15 +184,16 @@ class Memory:
         n = min(n, len(self.samples_buffer))
         return random.sample(self.samples_buffer, n)
 
-
+# %%
 """ MAIN """
+# TRAINING
 PROBLEM = 'CartPole-v0'
 env = Environment(PROBLEM)
 
 stateCnt = env.env.observation_space.shape[0]
 actionCnt = env.env.action_space.n
 
-agent = Agent(stateCnt, actionCnt)
+agent = Agent(stateCnt, actionCnt, training=True)
 
 try:
     while True:
@@ -189,13 +201,15 @@ try:
 finally:
     file_save_name = "cartpole-basic-" + datetime.now().strftime('%Y-%m-%d-%H-%M') + ".h5"
     agent.brain.model.save(file_save_name)
+    
+    
+# TEST TRAINED MODEL
+agent = Agent(stateCnt, actionCnt, training=False)
 
-
-env2 = Environment(PROBLEM)
-episode_count = 2
+episode_count = 5
 done = False
 for i in range(episode_count):
-    env2.run(agent)
-env2.env.close()
-        
-    
+    env.run(agent)
+env.env.close()
+
+
