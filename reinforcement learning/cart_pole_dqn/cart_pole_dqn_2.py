@@ -16,7 +16,7 @@ class Environment:
         self.problem = problem
         self.env = gym.make(problem)
         
-    def run(self, agent):
+    def run(self, agent, training):
         s = self.env.reset()
         R = 0
         while True:
@@ -29,9 +29,11 @@ class Environment:
             # terminal state
             if done:
                 s_ = None
-                
-            agent.observe( (s, a, r, s_) )
-            agent.replay()
+            
+            if training:
+                agent.observe( (s, a, r, s_) )
+                agent.replay()
+
             
             s = s_
             R += r
@@ -195,12 +197,12 @@ actionCnt = env.env.action_space.n
 
 agent = Agent(stateCnt, actionCnt, training=True)
 
-try:
-    while True:
-        env.run(agent)
-finally:
-    file_save_name = "cartpole-basic-" + datetime.now().strftime('%Y-%m-%d-%H-%M') + ".h5"
-    agent.brain.model.save(file_save_name)
+#try:
+#    while True:
+#        env.run(agent, training=True)
+#finally:
+#    file_save_name = "cartpole-basic-" + datetime.now().strftime('%Y-%m-%d-%H-%M') + ".h5"
+#    agent.brain.model.save(file_save_name)
     
     
 # TEST TRAINED MODEL
@@ -208,8 +210,9 @@ agent = Agent(stateCnt, actionCnt, training=False)
 
 episode_count = 5
 done = False
+# speed of rendering is highly dependent on training
 for i in range(episode_count):
-    env.run(agent)
+    env.run(agent, training=False)
 env.env.close()
 
 
