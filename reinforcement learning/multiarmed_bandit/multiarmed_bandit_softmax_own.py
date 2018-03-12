@@ -76,13 +76,21 @@ average_reward = agent.average_reward
 
 # histogramm
 plt.figure(1)
+plt.xlabel("machine")
+plt.ylabel("total pulls")
 plt.hist(agent.pull_order, align='mid')
 
 # average reward
 plt.figure(2)
+plt.xlabel("pulls")
+plt.xlabel("average reward")
+x = np.arange(NUM_PLAYS)
+horiz_line_data = np.array([best_reward for i in range(len(x))])
+plt.xlim([0, NUM_PLAYS])
+plt.plot(x, horiz_line_data, 'r--')
 plt.plot(agent.average_reward_values)
 
-
+# %%
 ## Testing out gradient bandit algorithm
 ALPHA = 0.2
 def p(H_values, action_index, reward):

@@ -197,13 +197,13 @@ actionCnt = env.env.action_space.n
 
 agent = Agent(stateCnt, actionCnt, training=True)
 
-#try:
-#    while True:
-#        env.run(agent, training=True)
-#finally:
-#    file_save_name = "cartpole-basic-" + datetime.now().strftime('%Y-%m-%d-%H-%M') + ".h5"
-#    agent.brain.model.save(file_save_name)
-    
+try:
+    while True:
+        env.run(agent, training=True)
+finally:
+    file_save_name = "cartpole-basic-" + datetime.now().strftime('%Y-%m-%d-%H-%M') + ".h5"
+    agent.brain.model.save(file_save_name)
+    env.env.close()
     
 # TEST TRAINED MODEL
 agent = Agent(stateCnt, actionCnt, training=False)
