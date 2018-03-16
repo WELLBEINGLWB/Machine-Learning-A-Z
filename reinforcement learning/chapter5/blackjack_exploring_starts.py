@@ -191,6 +191,7 @@ for i in range(len(states)):
 #        state_action_index = Q.index((state, action))
 #        state_index = states.index(state)
 #        if state_action_index % 2 == 1:
+
 #            state_action_index -= 1
 #
 #        best_action_state_action_index = np.argmax(Q_s_a[state_action_index:state_action_index+2])
