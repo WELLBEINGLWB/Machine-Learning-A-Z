@@ -11,12 +11,13 @@ from datetime import datetime
 
 """ ENVIRONMENT """
 class Environment:
-    
+    """ creates an openai environment """
     def __init__(self, problem):
         self.problem = problem
         self.env = gym.make(problem)
         
     def run(self, agent):
+        """ runs one epoch of the agent acting in environment and prints out total epoch reward """
         s = self.env.reset()
         R = 0
         while True:
@@ -202,7 +203,7 @@ finally:
     file_save_name = "cartpole-basic-" + datetime.now().strftime('%Y-%m-%d-%H-%M') + ".h5"
     agent.brain.model.save(file_save_name)
     
-    
+env.run
 # TEST TRAINED MODEL
 agent = Agent(stateCnt, actionCnt, training=False)
 
