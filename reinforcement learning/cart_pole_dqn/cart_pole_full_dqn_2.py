@@ -35,7 +35,7 @@ class Environment:
                 agent.observe( (s, a, r, s_) )
                 agent.replay()
 
-
+            # set next state for next step and increment reward
             s = s_
             R += r
 
@@ -51,6 +51,7 @@ GAMMA = 0.99
 MAX_EPSILON = 1
 MIN_EPSILON = 0.01
 LAMBDA = 0.001 # speed of epsilon decay
+TARGET_NETWORK_UPDATE_STEPS = 10000
 
 class Agent:
 
@@ -58,10 +59,10 @@ class Agent:
         self.stateCnt = stateCnt
         self.actionCnt = actionCnt
         self.training = training
+        self.steps = 0
 
         if training == True:
             self.epsilon = MAX_EPSILON
-            self.steps = 0
         else:
            # act greedily with a trained agent
             self.epsilon = 0
@@ -80,6 +81,9 @@ class Agent:
     # adds sample (s, a, r, s_) to memory
     def observe(self, sample):
         self.memory.add(sample)
+
+        if self.steps % TARGET_NETWORK_UPDATE_STEPS == 0:
+           self.brain.update_network()
 
         if self.training == True:
             self.steps += 1
@@ -125,6 +129,10 @@ class Agent:
         #perform single supervised learning step
         self.brain.train(x, y)
 
+    def update_network(self):
+       pass
+
+
 """ BRAIN """
 class Brain:
 
@@ -134,7 +142,9 @@ class Brain:
         self.actionCnt = actionCnt
 
         if training == True:
-            self.model = self._createModel()
+            self.model  = self._createModel()
+            # create two neural nets for FULL DQN
+            self.model_ = self._createModel()
         else:
             self.model = load_model('cartpole-basic-2018-03-09-18-44.h5')
 
@@ -159,14 +169,20 @@ class Brain:
         self.model.fit(x, y, batch_size=64, epochs=1, verbose=verbose)
 
     def predict(self, s):
+        """ predicts the ouput value with the stable target network """
         # predicts the output value = action (numpy array)
-        return self.model.predict(s)
+        return self.model_.predict(s)
+
 
     def predictOne(self, s):
         # question what shape does s have?
         # and what shape does predict return?
         # needs to be flattened because the argmax of the flattened array is calculated
         return self.predict(s.reshape(1, self.stateCnt)).flatten()
+
+    def update_network(self):
+       # update the target network weights
+       self.model_.set_weights(self.model.get_weights())
 
 """ MEMORY """
 class Memory:
@@ -188,6 +204,26 @@ class Memory:
         n = min(n, len(self.samples_buffer))
         return random.sample(self.samples_buffer, n)
 
+    def isFull(self):
+       return len(self.samples_buffer) >= self.capacity
+
+class RandomAgent:
+   memory = Memory(MEMORY_CAPACITY)
+
+   def __init__(self, actionCnt):
+      self.actionCnt = actionCnt
+
+   def act(self, s):
+      return random.randint(0, self.actionCnt - 1)
+
+   def observe(self, sample):
+      if len(self.memory.samples_buffer) % 1000 == 0:
+         print("memory samples length %d" % (len(self.memory.samples_buffer)))
+      self.memory.add(sample)
+
+   def replay(self):
+      pass
+
 # %%
 """ MAIN """
 # TRAINING
@@ -197,18 +233,27 @@ env = Environment(PROBLEM)
 stateCnt = env.env.observation_space.shape[0]
 actionCnt = env.env.action_space.n
 
-#agent = Agent(stateCnt, actionCnt, training=True)
-#
-#try:
-#    while True:
-#        env.run(agent, training=True)
-#finally:
-#    file_save_name = "cartpole-basic-" + datetime.now().strftime('%Y-%m-%d-%H-%M') + ".h5"
-#    agent.brain.model.save(file_save_name)
-#    env.env.close()
+
+
+agent = Agent(stateCnt, actionCnt, training=True)
+randomAgent = RandomAgent(actionCnt)
+
+try:
+   while randomAgent.memory.isFull() == False:
+      env.run(randomAgent)
+
+   agent.memory.samples_buffer = randomAgent.memory.samples_buffer
+
+   while True:
+        env.run(agent, training=True)
+finally:
+    # code is run after keyboard interrupt
+    file_save_name = "cartpole-full-" + datetime.now().strftime('%Y-%m-%d-%H-%M') + ".h5"
+    agent.brain.model.save(file_save_name)
+    env.env.close()
 
 # TEST TRAINED MODEL
-agent = Agent(stateCnt, actionCnt, training=False)
+#agent = Agent(stateCnt, actionCnt, training=False)
 
 #episode_count = 5
 #done = False
