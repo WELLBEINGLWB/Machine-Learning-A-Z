@@ -22,25 +22,24 @@ predict = tf.argmax(Qout, 1)
 
 # establish the loss function and the optimization step
 nextQ = tf.placeholder(shape=[1,n_qvalues], dtype=tf.float32)
-
 loss = tf.reduce_sum(tf.square(nextQ - Qout))
-
+# define different optimizer
 trainerGradient = tf.train.GradientDescentOptimizer(learning_rate=0.1)
 trainerAdam = tf.train.AdamOptimizer()
-#
+# define the update functions
 updateModelGradient = trainerGradient.minimize(loss)
 updateModelAdam = trainerAdam.minimize(loss)
 
 DISCOUNT = 0.99
 NUM_EPISODES = 2000
 LEARNING_RATE = 0.8
-EPSILON = 0.1
+epsilon = 0.1
 
 
 jList = []
 rList = []
 
-init = tf.initialize_all_variables()
+init = tf.global_variables_initializer()
 
 with tf.Session() as sess:
    sess.run(init)
@@ -61,12 +60,12 @@ with tf.Session() as sess:
          a, allQ = sess.run([predict, Qout], feed_dict={inputs: np.identity(n_states)[s:s+1]})
 
          # choose random action for epsilon greedy
-         if np.random.rand() < EPSILON:
+         if np.random.rand() < epsilon:
             a[0] = env.action_space.sample()
 
          s_, r, done, _ = env.step(a[0])
 
-         # obtain Q_ values by feeding the state through the network
+         # obtain Q_ values by feeding the new state s_ through the network
          Q_ = sess.run(Qout, feed_dict={inputs: np.identity(n_states)[s_:s_+1]})
 
          maxQ_ = np.max(Q_)
@@ -79,6 +78,7 @@ with tf.Session() as sess:
          rAll += r
          s = s_
          if done == True:
+            epsilon = 1./((episode/50) + 10)
             break
       jList.append(j)
       rList.append(rAll)

@@ -24,7 +24,7 @@ mnist = input_data.read_data_sets("/tmp/data", one_hot=True)
 0 = [1,0,0,0,0,0,0,0,0,0]
 1 = [0,1,0,0,0,0,0,0,0,0]
 2 = [0,0,1,0,0,0,0,0,0,0]
-3 = [0,0,0,3,0,0,0,0,0,0]
+3 = [0,0,0,1,0,0,0,0,0,0]
 """
 # nodes for hidden layers
 n_nodes_hl1 = 500
