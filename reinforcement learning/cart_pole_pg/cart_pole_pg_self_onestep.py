@@ -49,7 +49,8 @@ loss = -tf.reduce_mean(loglik * advantages)
 #adam = tf.train.AdamOptimizer(learning_rate=learning_rate)
 #update_grads = adam.apply_gradients(zip(batchGrad, [W1, W2]))
 # ALTERNATIVE learning for updating policy every episode
-train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss) # this is equal to tf.gradients -> optimizer.apply_gradients
+# this is equal to tf.gradients -> optimizer.apply_gradients
+train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
 # try out
 #updateGradW1 = adam.apply_gradients(zip(W1_grad, W1))
@@ -69,7 +70,7 @@ with tf.Session() as sess:
    reward_sum = 0
 
    # placeholder for our gradients
-   gradients = np.array([np.zeros(var.get_shape()) for var in trainable_vars])
+#   gradients = np.array([np.zeros(var.get_shape()) for var in trainable_vars])
    current_episode = 1
    while current_episode <= n_episodes:
 #      env.render()
@@ -112,7 +113,7 @@ with tf.Session() as sess:
                                     input_y: ys,
                                     advantages: discounted_rewards})
 
-         gradients *= 0 # clear gradients
+#         gradients *= 0 # clear gradients
 
          #clear out game variables
          xs = np.empty(0).reshape(0, dimensionality)
