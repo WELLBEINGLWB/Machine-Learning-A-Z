@@ -48,7 +48,7 @@ loss = -tf.reduce_mean(loglik * advantages)
 newGrads = tf.gradients(loss, tvars)
 
 # Once we have collected a series of gradients from multiple episodes, we apply them.
-# We don't just apply gradeients after every episode in order to account for noise in the reward signal.
+# We don't just apply gradients after every episode in order to account for noise in the reward signal.
 adam = tf.train.AdamOptimizer(learning_rate=learning_rate)
 W1Grad = tf.placeholder(tf.float32, name="batch_grad1") # placeholders to send the final gradients through when we update
 W2Grad = tf.placeholder(tf.float32, name="batch_grad2")
@@ -65,11 +65,11 @@ def discount_rewards(r):
         discounted_r[t] = running_add
     return discounted_r
 
-xs, hs, dlogps, drs, ys, tfps = [],[],[],[],[],[]
+xs, drs, ys = [],[],[]
 running_reward = None
 reward_sum = 0
 episode_number = 1
-total_episodes = 10000
+total_episodes = 1000
 batch_number = 1
 
 init = tf.global_variables_initializer()
@@ -115,8 +115,7 @@ with tf.Session() as sess:
          epx = np.vstack(xs)
          epy = np.vstack(ys)
          epr = np.vstack(drs)
-         tfp = tfps
-         xs,hs,dlogps,drs,ys,tfps = [],[],[],[],[],[] # reset array memory
+         xs,drs,ys = [],[],[] # reset array memory
 
          # compute the discounted reward backwards through time
          discounted_epr = discount_rewards(epr)
@@ -136,6 +135,7 @@ with tf.Session() as sess:
             batch_number += 1
             sess.run(updateGrads, feed_dict={W1Grad: gradBuffer[0],
                                              W2Grad: gradBuffer[1]})
+            # reset gradBuffer
             for ix, grad in enumerate(gradBuffer):
                gradBuffer[ix] = grad * 0
             # summary of how well network is doing
