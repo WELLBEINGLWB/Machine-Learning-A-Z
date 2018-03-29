@@ -38,7 +38,7 @@ with tf.name_scope('Model'):
 # define loss
 with tf.name_scope("Loss"):
    advantages = tf.placeholder(dtype=tf.float32, name="RewardSignal")
-   # log likelihood of going right
+   # log likelihood of going right -> action = input_y = 1
    # input_y == 1 -> tf.log(output_prob)
    # input_y == 0 -> tflog(1-output_prob)
    loglik = tf.log((1-input_y)*(1-output_prob) + input_y*(output_prob))
@@ -52,16 +52,6 @@ xs = np.empty(0).reshape(0, dimensionality)
 ys = np.empty(0).reshape(0,1)
 drs = np.empty(0).reshape(0,1)
 
-init = tf.global_variables_initializer()
-#sess = tf.Session()
-#sess.run(init)
-#writer = tf.summary.FileWriter("/tmp/tensorflow/", sess.graph)
-#writer.add_graph(sess.graph)
-
-max_episodes = 2000
-episode = 0
-observation = env.reset()
-reward_sum = 0
 
 # create summary to monitor cost tensor
 tf.summary.scalar("loss", loss)
@@ -69,11 +59,16 @@ tf.summary.scalar("loss", loss)
 # merge all summaries
 merged_summary_op = tf.summary.merge_all()
 
-with tf.Session() as sess:
+init = tf.global_variables_initializer()
 
+with tf.Session() as sess:
    sess.run(init)
    # op to write summary to logs
    summary_writer = tf.summary.FileWriter(logs_path, graph=tf.get_default_graph())
+   max_episodes = 2000
+   episode = 0
+   observation = env.reset()
+   reward_sum = 0
 
    while episode <= max_episodes:
 
@@ -105,10 +100,11 @@ with tf.Session() as sess:
          sess.run(train, feed_dict={observations: xs,
                                     input_y: ys,
                                     advantages: discounted_epr})
+
+         # write logs at every iteration
          summary = sess.run(merged_summary_op, feed_dict={observations: xs,
                                                           input_y: ys,
                                                           advantages: discounted_epr})
-         # write logs at every iteration
          summary_writer.add_summary(summary)
 
          # empty arrays again
