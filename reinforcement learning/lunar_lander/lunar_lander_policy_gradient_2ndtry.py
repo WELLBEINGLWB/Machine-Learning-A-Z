@@ -3,14 +3,14 @@ import tensorflow as tf
 import gym
 
 env = gym.make("LunarLander-v2")
-logs_path = "/home/andi/Documents/Machine-Learning-A-Z/reinforcement learning/lunar_lander"
+logs_path = "/home/andi/Documents/Machine-Learning-A-Z/reinforcement learning/lunar_lander/no_biased_sample_after_x_episodes"
 
 n_states = env.observation_space.shape[0]
 n_actions = env.action_space.n
-n_neurons_hl1 = 16
-n_neurons_hl2 = 16
-discount = 0.95
-learning_rate = 1e-2
+n_neurons_hl1 = 100
+n_neurons_hl2 = 100
+discount = 0.99
+learning_rate = 1e-4
 info_size = 10
 
 tf.reset_default_graph()
@@ -33,6 +33,8 @@ with tf.name_scope("inputs"):
    Y = tf.placeholder(tf.float32, shape=(None, n_actions), name="Y")
    discounted_norm_ep_rewards = tf.placeholder(tf.float32, shape=[None, ], name="disc_norm_reward_weight")
    ep_rewards = tf.placeholder(tf.float32, shape=[None, ], name="true_episode_rewards")
+
+""" histogramm über gradienten und gewichte """
 
 with tf.name_scope("parameters"):
    W1 = tf.get_variable(name="W1", shape=[n_states, n_neurons_hl1], initializer=tf.contrib.layers.xavier_initializer())
@@ -90,8 +92,13 @@ with tf.Session() as sess:
       # choose action
       input_state = np.reshape(state, (1, n_states))
       action_probs = sess.run(output_probabilities, feed_dict={X: input_state})
-      # sample random action (exploration i guess)
-      action = np.random.choice(range(len(action_probs.ravel())), p=action_probs.ravel() )
+
+      if episode < 500:
+         # sample random action (exploration i guess) until certain episode
+         action = np.random.choice(range(len(action_probs.ravel())), p=action_probs.ravel() )
+      else:
+         # after x episodes take action with highest probability
+         action = np.argmax(action_probs)
 
       state_, reward, done, _ = env.step(action)
 
@@ -126,24 +133,29 @@ with tf.Session() as sess:
          if episode % info_size == 0:
             print("EPISODE#%d, BATCH_REWARD %.2f" % (episode, reward_sum/info_size))
 
-            if reward_sum/info_size > 0:
+            if reward_sum/info_size > 180 and render == False:
                print("FIRST POSITIVE REWARD AFTER %d EPISODES, RENDER ACTIVE" % (episode))
                render = True
-            reward_sum = 0
 
             if reward_sum/info_size > 190:
                print("TASK SOLVED AFTER %d EPSIODES" % (episode))
                break
+
+            reward_sum = 0
+
+         # save model every 500 episodes
+         if episode % 500 == 0:
+            print("saving model after %d episodes" % (episode))
+            save_path = saver.save(sess, logs_path+"/trained_model.cpkt")
+
          # emtpy episode memory
          episode_states = []; episode_actions = []; episode_rewards = []
 
          state = env.reset()
 
-# saving the variables in the model file
+# saving final model
+print("saving final model after %d episodes" % (episode))
 save_path = saver.save(sess, logs_path+"/trained_model.cpkt")
-
-
-
 
 
 

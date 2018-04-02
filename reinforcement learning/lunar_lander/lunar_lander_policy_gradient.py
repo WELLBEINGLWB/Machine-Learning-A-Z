@@ -3,7 +3,7 @@ import tensorflow as tf
 import gym
 
 env = gym.make("LunarLander-v2")
-logs_path = '/tmp/tensorflow/lunar0'
+logs_path = '/tmp/tensorflow/lunar_batch'
 
 n_states = env.observation_space.shape[0]
 n_neurons_hl1 = 50
@@ -35,6 +35,8 @@ with tf.name_scope("Model"):
    probabilities = tf.nn.softmax(logits, name="action_probabilities")
    chosen_action = tf.argmax(probabilities, axis=1)
 
+   ep_rewards = tf.placeholder(tf.float32, shape=[None, ], name="true_episode_rewards")
+
 with tf.name_scope("training"):
    action_holder = tf.placeholder(dtype=tf.int32, shape=[None], name="action_holder")
    reward_holder = tf.placeholder(dtype=tf.float32, shape=[None], name="reward_holder")
@@ -56,10 +58,12 @@ with tf.name_scope("training"):
    gradients = tf.gradients(loss, tvars, name="gradients")
 
    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+   """ try tf.train.gradientdescent , learning rate verringern"""
    update_batch = optimizer.apply_gradients(zip(gradient_holders, tvars))
 
-#with tf.name_scope("train"):
-#   train = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
+with tf.name_scope("other_scalars"):
+   episode_reward_sum = tf.reduce_sum(ep_rewards)
+   tf.summary.scalar(name="episode_reward_sum_value", tensor=episode_reward_sum)
 
 tf.summary.scalar("loss", loss)
 merged_summary_op = tf.summary.merge_all()
@@ -73,7 +77,7 @@ with tf.Session() as sess:
    sess.run(tf.global_variables_initializer())
    summary_writer = tf.summary.FileWriter(logs_path, sess.graph)
    state = env.reset()
-   max_episodes = 1000
+   max_episodes = 10000
    episode = 0
    reward_sum = 0
    ep_history = []
@@ -123,7 +127,10 @@ with tf.Session() as sess:
             grad_buffer[idx] += grad
 
          # write logs to summary
-         summary = sess.run(merged_summary_op, feed_dict=feed_dict)
+         summary = sess.run(merged_summary_op, feed_dict={input_state: np.vstack(ep_history[:,0]),
+                                                          action_holder: ep_history[:,1],
+                                                          reward_holder: discounted_rewards,
+                                                          ep_rewards: rewards.ravel()})
          summary_writer.add_summary(summary)
 
          ep_history = []
