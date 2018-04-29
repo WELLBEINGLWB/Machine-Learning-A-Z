@@ -1,0 +1,4 @@
+DEBUG: Add: 20 + 10 = 30
+DEBUG: Sub: 20 - 10 = 10
+DEBUG: Mul: 20 * 10 = 200
+DEBUG: Div: 20 / 10 = 2.0

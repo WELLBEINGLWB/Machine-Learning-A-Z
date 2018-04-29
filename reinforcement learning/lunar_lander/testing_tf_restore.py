@@ -4,7 +4,7 @@ tf.reset_default_graph()
 m1 = tf.get_variable(name="ones4", shape=[10])
 m2 = tf.get_variable(name="identy4", shape=[4,4])
 saver = tf.train.Saver()
-logs_path = '/tmp/tensorflow/saver'
+logs_path = "/home/andi/Documents/Machine-Learning-A-Z/reinforcement learning/lunar_lander/test"
 
 
 with tf.Session() as sess:

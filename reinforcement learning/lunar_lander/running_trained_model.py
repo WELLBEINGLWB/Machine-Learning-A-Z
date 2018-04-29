@@ -4,7 +4,7 @@ import gym
 
 env = gym.make("LunarLander-v2")
 #logs_path = '/tmp/tensorflow/lunar_batch'
-logs_path = "/home/andi/Documents/Machine-Learning-A-Z/reinforcement learning/lunar_lander"
+logs_path = "/home/andi/Documents/Machine-Learning-A-Z/reinforcement learning/lunar_lander/pg"
 
 n_states = env.observation_space.shape[0]
 n_neurons_hl1 = 50
@@ -78,21 +78,24 @@ states = np.empty(0).reshape((0, n_states))
 actions = np.empty(0).reshape((0, 1))
 rewards = np.empty(0).reshape((0, 1))
 
+
 with tf.Session() as sess:
    train = False
    saver = tf.train.Saver()
    if train == True:
       sess.run(tf.global_variables_initializer())
    else:
-      saver.restore(sess, logs_path+"/model.ckpt")
+      saver.restore(sess, logs_path+"/ep2000.ckpt")
       print("Model restored.")
 
    summary_writer = tf.summary.FileWriter(logs_path, sess.graph)
    state = env.reset()
-   max_episodes = 1000
+   max_episodes = 10
    episode = 0
    reward_sum = 0
    ep_history = []
+
+
 
    grad_buffer = sess.run(tf.trainable_variables())
    for idx, grad in enumerate(grad_buffer):
@@ -107,12 +110,12 @@ with tf.Session() as sess:
       chosen_action_prob = np.random.choice(action_probs[0], p=action_probs[0])
       action = np.argmax(action_probs == chosen_action_prob)
 
-      state_, reward, done, _ = env.step(action)
+      state_, reward, done, _ = env.step(best_action)
       # stack arrays for updating policy after episode is finished
       states = np.vstack((states, input_x))
-      actions = np.vstack((actions, action))
+      actions = np.vstack((actions, best_action))
       rewards = np.vstack((rewards, reward))
-      ep_history.append([state, action, reward, state_])
+      ep_history.append([state, best_action, reward, state_])
 
       reward_sum += reward
       # set state for next time step
@@ -125,50 +128,50 @@ with tf.Session() as sess:
 
          ep_history = np.array(ep_history)
          # discount rewards and normalize them
-         discounted_rewards = discount_rewards(ep_history[:,2], gamma=discount)
-         discounted_rewards -= np.mean(discounted_rewards)
-         discounted_rewards /= np.std(discounted_rewards)
+#         discounted_rewards = discount_rewards(ep_history[:,2], gamma=discount)
+#         discounted_rewards -= np.mean(discounted_rewards)
+#         discounted_rewards /= np.std(discounted_rewards)
+#
+#         # train the policy
+#         feed_dict = {input_state: np.vstack(ep_history[:,0]),
+#                      action_holder: ep_history[:,1],
+#                      reward_holder: discounted_rewards}
+#
+#         grads, resp_probs = sess.run([gradients, responsible_probabilities], feed_dict=feed_dict)
+#         print("PROB_SHAPE[1]", prob_1.eval(feed_dict))
+#         print("PROB_SHAPE[0]", prob_0.eval(feed_dict))
+#         print("RANGE", index_range.eval(feed_dict))
+#         print("INDEXES", indexes.eval(feed_dict))
+#         for idx, grad in enumerate(grads):
+#            grad_buffer[idx] += grad
+#
+#         # write logs to summary
+#         summary = sess.run(merged_summary_op, feed_dict={input_state: np.vstack(ep_history[:,0]),
+#                                                          action_holder: ep_history[:,1],
+#                                                          reward_holder: discounted_rewards,
+#                                                          ep_rewards: rewards.ravel()})
+#         summary_writer.add_summary(summary)
 
-         # train the policy
-         feed_dict = {input_state: np.vstack(ep_history[:,0]),
-                      action_holder: ep_history[:,1],
-                      reward_holder: discounted_rewards}
-
-         grads, resp_probs = sess.run([gradients, responsible_probabilities], feed_dict=feed_dict)
-         print("PROB_SHAPE[1]", prob_1.eval(feed_dict))
-         print("PROB_SHAPE[0]", prob_0.eval(feed_dict))
-         print("RANGE", index_range.eval(feed_dict))
-         print("INDEXES", indexes.eval(feed_dict))
-         print("RESP_PROBS", responsible_probabilities.eval(feed_dict))
-         for idx, grad in enumerate(grads):
-            grad_buffer[idx] += grad
-
-         # write logs to summary
-         summary = sess.run(merged_summary_op, feed_dict={input_state: np.vstack(ep_history[:,0]),
-                                                          action_holder: ep_history[:,1],
-                                                          reward_holder: discounted_rewards,
-                                                          ep_rewards: rewards.ravel()})
-         summary_writer.add_summary(summary)
          ep_history = []
-
-         if episode % save_model_size == 0:
-            save_path = saver.save(sess, logs_path+"/ep"+str(episode)+".cpkt")
-            print("saving model after %d episodes" % (episode))
+#
+#         if episode % save_model_size == 0:
+#            save_path = saver.save(sess, logs_path+"/ep"+str(episode)+".cpkt")
+#            print("saving model after %d episodes" % (episode))
 
          if episode % batch_size == 0:
-            feed_dict = dictionary = dict(zip(gradient_holders, grad_buffer))
-            _ = sess.run(update_batch, feed_dict=feed_dict)
-
-            for idx, grad in enumerate(grad_buffer):
-               grad_buffer[idx] = grad * 0
+#            feed_dict = dictionary = dict(zip(gradient_holders, grad_buffer))
+#            _ = sess.run(update_batch, feed_dict=feed_dict)
+#
+#            for idx, grad in enumerate(grad_buffer):
+#               grad_buffer[idx] = grad * 0
 
             print("Average reward for batch %d: %.2f" % (int(episode/batch_size), reward_sum/batch_size))
 
-            if reward_sum/batch_size > 190:
-               print("Solved after %d episodes" % (episode))
-               save_path = saver.save(sess, logs_path+"/trained_model.cpkt")
-               print("saving model after %d episodes" % (episode))
-               break
+#            if reward_sum/batch_size > 190:
+#               print("Solved after %d episodes" % (episode))
+#               save_path = saver.save(sess, logs_path+"/trained_model.cpkt")
+#               print("saving model after %d episodes" % (episode))
+#               break
 
             reward_sum = 0
 

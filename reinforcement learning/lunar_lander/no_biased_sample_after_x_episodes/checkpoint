@@ -1,2 +1,0 @@
-model_checkpoint_path: "/home/andi/Documents/Machine-Learning-A-Z/reinforcement learning/lunar_lander/no_biased_sample_after_x_episodes/trained_model.cpkt"
-all_model_checkpoint_paths: "/home/andi/Documents/Machine-Learning-A-Z/reinforcement learning/lunar_lander/no_biased_sample_after_x_episodes/trained_model.cpkt"
